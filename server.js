@@ -148,36 +148,24 @@ app.get('/chamada', async (req, res) => {
     }
 });
 
-// Rota para excluir aluno (verificando se há chamadas registradas)
+// Rota para excluir aluno (sem verificar chamadas registradas)
 app.delete('/alunos/:nome', async (req, res) => {
     try {
-        const nomeAluno = req.params.nome;
-        let alunos = await lerJSON(DATA_FILE);
-        const chamadas = await lerJSON(CHAMADA_FILE);
+        const nomeAluno = req.params.nome.trim().toLowerCase(); // Normalizar nome do aluno
+        let alunos = await lerJSON(DATA_FILE); // Lê a lista de alunos
 
-        // Verifica se o aluno possui chamadas registradas
-        const temChamada = chamadas.some(chamada =>
-            chamada.presentes.includes(nomeAluno) || chamada.ausentes.includes(nomeAluno)
-        );
+        // Filtra os alunos e exclui o aluno com o nome correspondente
+        const novosAlunos = alunos.filter(aluno => aluno.nome.trim().toLowerCase() !== nomeAluno);
 
-        // Log para verificar se o aluno tem chamadas registradas
-        console.log(`Verificando chamadas para o aluno ${nomeAluno}:`, temChamada);
-
-        if (temChamada) {
-            return res.status(400).json({ error: 'Não é possível excluir o aluno, pois há chamadas registradas.' });
-        }
-
-        const novosAlunos = alunos.filter(aluno => aluno.nome !== nomeAluno);
-
+        // Se o aluno não foi encontrado, retorna um erro
         if (alunos.length === novosAlunos.length) {
             return res.status(404).json({ error: 'Aluno não encontrado.' });
         }
 
-        // Log para verificar a lista de alunos antes e depois da exclusão
-        console.log("Alunos antes da exclusão:", alunos);
-        console.log("Alunos após a exclusão:", novosAlunos);
-
+        // Salva a lista atualizada de alunos sem o aluno excluído
         await salvarJSON(DATA_FILE, novosAlunos);
+
+        // Responde com sucesso
         res.json({ message: `Aluno ${nomeAluno} excluído com sucesso!` });
     } catch (error) {
         console.error('Erro ao excluir aluno:', error.message);
